@@ -1,5 +1,5 @@
 from exagium.core.status import RunStatus
-from exagium.trace.signatures import SemanticSignature, normalize_event_sequence
+from exagium.trace.signatures import SemanticSignature, classify_command, normalize_event_sequence
 
 
 def test_normalizes_events_into_semantic_operations_and_pairs_lifecycle_events() -> None:
@@ -62,3 +62,9 @@ def test_classifies_powershell_read_and_tool_operations() -> None:
         SemanticSignature.READ,
         SemanticSignature.EDIT,
     ]
+
+
+def test_search_command_wins_when_its_pattern_mentions_test_tools() -> None:
+    command = 'pwsh -Command rg -n "unittest|pytest|token" fixtures/buggy_auth_service'
+
+    assert classify_command(command) == SemanticSignature.SEARCH

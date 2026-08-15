@@ -64,10 +64,10 @@ def _text(value: Any) -> str | None:
 def classify_command(command: str | None) -> SemanticSignature:
     if not command:
         return SemanticSignature.COMMAND
-    if _TEST_COMMAND.search(command):
-        return SemanticSignature.TEST
     if _SEARCH_COMMAND.search(command):
         return SemanticSignature.SEARCH
+    if _TEST_COMMAND.search(command):
+        return SemanticSignature.TEST
     if _READ_COMMAND.search(command):
         return SemanticSignature.READ
     if _EDIT_COMMAND.search(command):

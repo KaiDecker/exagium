@@ -54,7 +54,7 @@ def _render_semantic_step(step: SemanticStep | None) -> str:
     signature = str(step.signature)
     detail = step.detail
     outcome = step.outcome
-    suffix = f" — {detail}" if detail else ""
+    suffix = f" | {detail}" if detail else ""
     if outcome:
         suffix += f" [{outcome}]"
     return f"{signature}{suffix}"
