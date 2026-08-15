@@ -11,7 +11,42 @@ import {
   shortId,
   StatusBadge,
 } from "../components";
-import type { Experiment } from "../types";
+import type { Experiment, Run } from "../types";
+
+function RunTable({ runs }: { runs: Run[] }) {
+  return (
+    <div className="run-table-wrap">
+      <table className="run-table">
+        <thead>
+          <tr>
+            <th>Run</th>
+            <th>Variant</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Commands</th>
+            <th>Tokens</th>
+          </tr>
+        </thead>
+        <tbody>
+          {runs.map((run) => (
+            <tr key={run.id}>
+              <td>
+                <a href={`/runs/${run.id}`}>{shortId(run.id)}</a>
+              </td>
+              <td>{run.variant_id ?? "standalone"}</td>
+              <td>
+                <StatusBadge status={run.status} />
+              </td>
+              <td>{formatDuration(run.metrics.duration_ms)}</td>
+              <td>{run.metrics.command_count ?? 0}</td>
+              <td>{formatNumber(run.metrics.tokens_total)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function ExperimentDetail({ experiment }: { experiment: Experiment }) {
   const detail = useQuery({
@@ -83,44 +118,14 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
       </div>
       {detail.isLoading && <Loading label="Loading runs" />}
       {detail.error && <ErrorPanel error={detail.error} />}
-      {detail.data && (
-        <div className="run-table-wrap">
-          <table className="run-table">
-            <thead>
-              <tr>
-                <th>Run</th>
-                <th>Variant</th>
-                <th>Status</th>
-                <th>Duration</th>
-                <th>Commands</th>
-                <th>Tokens</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.data.runs.map((run) => (
-                <tr key={run.id}>
-                  <td>
-                    <a href={`/runs/${run.id}`}>{shortId(run.id)}</a>
-                  </td>
-                  <td>{run.variant_id ?? "—"}</td>
-                  <td>
-                    <StatusBadge status={run.status} />
-                  </td>
-                  <td>{formatDuration(run.metrics.duration_ms)}</td>
-                  <td>{run.metrics.command_count ?? 0}</td>
-                  <td>{formatNumber(run.metrics.tokens_total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {detail.data && <RunTable runs={detail.data.runs} />}
     </section>
   );
 }
 
 export function ExperimentsPage() {
   const experiments = useQuery({ queryKey: ["experiments"], queryFn: api.experiments });
+  const recentRuns = useQuery({ queryKey: ["runs"], queryFn: api.runs });
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
@@ -149,10 +154,25 @@ export function ExperimentsPage() {
       </header>
 
       {!rows.length ? (
-        <EmptyState title="No experiments recorded">
-          Run <code>exagium experiment run experiments\example.yaml</code> to create the first
-          evidence set.
-        </EmptyState>
+        <>
+          <EmptyState title="No experiments recorded">
+            Run <code>exagium experiment run experiments\demo-auth-stability.yaml</code> to create
+            the first repeated evidence set.
+          </EmptyState>
+          {recentRuns.error && <ErrorPanel error={recentRuns.error} />}
+          {recentRuns.data && recentRuns.data.length > 0 && (
+            <section className="standalone-runs panel">
+              <div className="section-heading compact">
+                <div>
+                  <span className="eyebrow">Evidence already available</span>
+                  <h3>Recent standalone runs</h3>
+                </div>
+                <span>{recentRuns.data.length} records</span>
+              </div>
+              <RunTable runs={recentRuns.data} />
+            </section>
+          )}
+        </>
       ) : (
         <>
           <div className="overview-strip">
