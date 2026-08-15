@@ -1,0 +1,27 @@
+id: demo-auth-race
+name: Fix concurrent authentication identity leak
+
+repo:
+  path: ..
+  base_ref: main
+
+prompt: |
+  Fix the concurrency bug in fixtures/buggy_auth_service.
+
+  When two AuthenticationService.authenticate calls overlap, a request can return the user
+  belonging to a different token. Preserve the public API and existing error behavior. Work only
+  inside fixtures/buggy_auth_service, do not weaken or remove tests, and run the focused standard
+  library test suite before finishing.
+
+validation:
+  - name: authentication fixture tests
+    command: python -m unittest discover -s fixtures/buggy_auth_service/tests -v
+    timeout_seconds: 60
+
+limits:
+  run_timeout_seconds: 600
+
+metadata:
+  category: concurrency-bugfix
+  difficulty: easy
+  offline: true

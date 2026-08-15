@@ -1,0 +1,10 @@
+id: demo-auth-stability
+name: Codex authentication stability
+
+task: ../tasks/demo-auth-race.yaml
+
+variants:
+  - id: codex-default
+    agent: codex
+    label: Codex default
+    repeat: 3

@@ -114,6 +114,27 @@ exagium run task.yaml --json
 Exagium deliberately inherits the user's normal Codex environment. If Codex is routed through a
 local provider or router, that remains Codex's configuration; Exagium does not request the API key.
 
+## Run the offline authentication demo
+
+The repository includes a deliberately buggy, standard-library-only authentication fixture. Its
+committed baseline fails one deterministic concurrency test (`alice` is incorrectly returned as
+`bob` when two requests overlap).
+
+Run one real Codex evaluation:
+
+```powershell
+exagium run tasks\demo-auth-race.yaml --agent codex
+```
+
+After the single-run path is healthy, repeat it three times:
+
+```powershell
+exagium experiment run experiments\demo-auth-stability.yaml
+```
+
+The independent validator always starts from the committed buggy baseline in a detached Git
+worktree. It requires no package installation or network access.
+
 ## Run an experiment
 
 ```yaml
