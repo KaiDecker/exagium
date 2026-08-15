@@ -1,0 +1,21 @@
+id: example-bugfix
+name: Example coding task
+
+repo:
+  path: ../your-project
+  base_ref: main
+
+prompt: |
+  Fix the described bug, preserve existing behavior, and update tests when appropriate.
+
+validation:
+  - name: tests
+    command: python -m pytest -q
+    timeout_seconds: 180
+
+limits:
+  run_timeout_seconds: 900
+
+metadata:
+  category: bugfix
+  difficulty: medium

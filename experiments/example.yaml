@@ -1,0 +1,10 @@
+id: codex-example-stability
+name: Codex example stability
+
+task: ../tasks/example.yaml
+
+variants:
+  - id: codex-default
+    agent: codex
+    label: Codex default
+    repeat: 3
