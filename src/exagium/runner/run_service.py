@@ -224,6 +224,15 @@ class RunService:
             (event["payload"] for event in reversed(events) if event["type"] == "USAGE_REPORTED"),
             {},
         )
+        tokens_input = usage.get("input_tokens")
+        tokens_output = usage.get("output_tokens")
+        tokens_total = usage.get("total_tokens")
+        if (
+            tokens_total is None
+            and isinstance(tokens_input, int)
+            and isinstance(tokens_output, int)
+        ):
+            tokens_total = tokens_input + tokens_output
         return {
             "duration_ms": int((time.perf_counter() - started) * 1000),
             "event_count": len(events),
@@ -231,8 +240,8 @@ class RunService:
             "tool_call_count": types.count("TOOL_STARTED"),
             "file_change_count": types.count("FILE_CHANGED"),
             "validation_count": types.count("VALIDATION_COMPLETED"),
-            "tokens_input": usage.get("input_tokens"),
-            "tokens_output": usage.get("output_tokens"),
-            "tokens_total": usage.get("total_tokens"),
+            "tokens_input": tokens_input,
+            "tokens_output": tokens_output,
+            "tokens_total": tokens_total,
             "cost": usage.get("cost"),
         }

@@ -45,7 +45,7 @@ class FakeAdapter:
             EventDraft(
                 type=EventType.USAGE_REPORTED,
                 source="fake",
-                payload={"total_tokens": 42},
+                payload={"input_tokens": 40, "output_tokens": 2},
             )
         )
         return AgentRunResult(exit_code=0, duration_ms=1)
