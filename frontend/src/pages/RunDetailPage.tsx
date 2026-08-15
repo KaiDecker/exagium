@@ -18,6 +18,10 @@ function eventTitle(event: AgentEvent) {
   const payload = event.payload;
   if (typeof payload.command === "string") return payload.command;
   if (typeof payload.path === "string") return payload.path;
+  if (Array.isArray(payload.changes) && payload.changes.length) {
+    const first = payload.changes[0] as { path?: unknown };
+    if (typeof first.path === "string") return first.path;
+  }
   if (typeof payload.text === "string") return payload.text;
   if (typeof payload.status === "string") return payload.status;
   return event.type.replaceAll("_", " ").toLowerCase();
@@ -49,6 +53,10 @@ export function RunDetailPage({ runId }: { runId: string }) {
   if (!run.data) return null;
   const item = run.data;
   const diff = artifacts.data?.find((artifact) => artifact.type === "git_diff");
+  const traceEvents = events.data?.filter(
+    (event) => event.type !== "SYSTEM_NOTE" && event.type !== "USAGE_REPORTED",
+  );
+  const hiddenEventCount = (events.data?.length ?? 0) - (traceEvents?.length ?? 0);
 
   return (
     <div className="page run-page">
@@ -83,7 +91,13 @@ export function RunDetailPage({ runId }: { runId: string }) {
           <div className="timeline">
             {events.isLoading && <Loading label="Loading trace" />}
             {events.error && <ErrorPanel error={events.error} />}
-            {events.data?.map((event) => (
+            {hiddenEventCount > 0 && (
+              <div className="trace-filter-note">
+                {hiddenEventCount} system/usage events hidden from the focused trace. Open Raw to
+                inspect every recorded event.
+              </div>
+            )}
+            {traceEvents?.map((event) => (
               <article className={`timeline-item ${eventClass(event.type)}`} key={event.id}>
                 <div className="timeline-axis"><span>{event.seq}</span><i /></div>
                 <div>

@@ -124,6 +124,7 @@ footer { min-height: 76px; padding: 20px clamp(22px, 4vw, 64px); border-top: 1px
 .tabs button.active { color: var(--paper); }
 .tabs button.active::after { content: ""; height: 2px; position: absolute; left: 16px; right: 16px; bottom: -1px; background: var(--orange); }
 .timeline { padding: 22px clamp(16px, 3vw, 38px) 38px; }
+.trace-filter-note { margin: 0 0 22px 52px; padding: 11px 14px; border: 1px solid var(--line); color: var(--muted); background: #101714; font: 9px/1.55 var(--mono); }
 .timeline-item { display: grid; grid-template-columns: 52px 1fr; min-height: 88px; }
 .timeline-axis { position: relative; display: flex; justify-content: center; }
 .timeline-axis span { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--line); background: var(--panel); color: var(--faint); font: 9px var(--mono); z-index: 1; }

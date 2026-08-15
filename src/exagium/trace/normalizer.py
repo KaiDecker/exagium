@@ -38,7 +38,11 @@ def normalize_codex_event(raw: dict[str, Any] | str) -> EventDraft:
         else:
             event_type = EventType.COMMAND_COMPLETED
     elif item_type in {"file_change", "file_changed"}:
-        event_type = EventType.FILE_CHANGED
+        event_type = (
+            EventType.SYSTEM_NOTE
+            if source_type.endswith("started")
+            else EventType.FILE_CHANGED
+        )
     elif item_type in {"mcp_tool_call", "tool_call"}:
         if source_type.endswith("started"):
             event_type = EventType.TOOL_STARTED

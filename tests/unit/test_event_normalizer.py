@@ -30,3 +30,13 @@ def test_invalid_json_line_is_preserved() -> None:
 
     assert event.type == EventType.SYSTEM_NOTE
     assert event.raw_event == "not json"
+
+
+def test_counts_file_change_only_when_the_lifecycle_item_completes() -> None:
+    item = {"id": "change-1", "type": "file_change", "path": "src/app.py"}
+
+    started = normalize_codex_event({"type": "item.started", "item": item})
+    completed = normalize_codex_event({"type": "item.completed", "item": item})
+
+    assert started.type == EventType.SYSTEM_NOTE
+    assert completed.type == EventType.FILE_CHANGED
