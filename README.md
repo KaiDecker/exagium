@@ -1,5 +1,7 @@
 # Exagium
 
+[![CI](https://github.com/KaiDecker/exagium/actions/workflows/ci.yml/badge.svg)](https://github.com/KaiDecker/exagium/actions/workflows/ci.yml)
+
 **Bring your own agent. Run it, trace it, evaluate it, compare it.**
 
 Exagium is a local-first harness for testing coding agents that are already installed and
@@ -14,6 +16,8 @@ Task → Codex → Trace → Validation → PASS / FAIL / ERROR
                          ↓
                 Repeat → Aggregate → Compare
 ```
+
+![Exagium experiment dashboard](docs/assets/experiments.png)
 
 ## What works now
 
@@ -32,6 +36,33 @@ Task → Codex → Trace → Validation → PASS / FAIL / ERROR
 - Tests use a fake JSONL agent and require no Codex credentials or network access.
 
 Exagium does not call an LLM API, manage provider keys, or implement its own agent loop.
+
+## Verified real experiment
+
+The included offline authentication race task was executed three times with the locally configured
+Codex CLI on 2026-08-15. These are real runs, not seeded UI data:
+
+| Metric | Result |
+| --- | ---: |
+| Runs | 3 |
+| Independently validated passes | 3 |
+| Success rate | 100% |
+| Median duration | 5.1 min |
+| Duration range | 1.3–5.3 min |
+| Median reported tokens | 95,430 |
+| Reported token range | 89,871–109,692 |
+
+Three runs are a pipeline verification, not a statistically meaningful benchmark. They already
+showed behavioral variance: two successful runs diverged at their first semantic step (`READ` vs
+`SEARCH`) despite producing the same validated fix.
+
+### Run evidence
+
+![Exagium run detail with real Codex trace](docs/assets/run-detail.png)
+
+### Deterministic comparison
+
+![Exagium comparison of two real passing runs](docs/assets/compare.png)
 
 ## Requirements
 
