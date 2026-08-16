@@ -89,7 +89,7 @@ def classify_tool(name: str | None) -> SemanticSignature:
 
 
 def _operation_key(payload: Mapping[str, Any], detail: str | None) -> str:
-    for key in ("id", "item_id", "call_id", "tool_call_id"):
+    for key in ("id", "item_id", "call_id", "tool_call_id", "tool_use_id"):
         if value := payload.get(key):
             return str(value)
     return detail or "unknown"

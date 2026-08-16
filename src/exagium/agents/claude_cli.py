@@ -5,7 +5,7 @@ import json
 import time
 
 from exagium.agents.base import EventEmitter
-from exagium.agents.executable import resolve_command as _resolve_command
+from exagium.agents.executable import resolve_command
 from exagium.core.events import EventDraft, EventType
 from exagium.core.models import (
     AgentDoctorResult,
@@ -14,26 +14,35 @@ from exagium.core.models import (
     AgentRunResult,
 )
 from exagium.runner.process import process_group_options, terminate_process_tree
-from exagium.trace.normalizer import normalize_codex_event
+from exagium.trace.normalizer import ClaudeEventNormalizer
 
 
-class CodexCliAdapter:
-    name = "codex"
+class ClaudeCliAdapter:
+    name = "claude"
 
     def __init__(
         self,
-        executable: str = "codex",
+        executable: str = "claude",
         *,
-        exec_prefix: tuple[str, ...] = ("exec",),
+        print_prefix: tuple[str, ...] = (
+            "--print",
+            "--verbose",
+            "--output-format",
+            "stream-json",
+            "--permission-mode",
+            "acceptEdits",
+            "--no-session-persistence",
+            "--no-chrome",
+        ),
         extra_args: tuple[str, ...] = (),
     ) -> None:
         self.executable = executable
-        self.exec_prefix = exec_prefix
+        self.print_prefix = print_prefix
         self.extra_args = extra_args
         self._processes: dict[str, asyncio.subprocess.Process] = {}
 
     async def doctor(self) -> AgentDoctorResult:
-        command_prefix = _resolve_command(self.executable)
+        command_prefix = resolve_command(self.executable)
         if command_prefix is None:
             return AgentDoctorResult(
                 available=False,
@@ -64,26 +73,19 @@ class CodexCliAdapter:
 
     async def metadata(self) -> AgentMetadata:
         result = await self.doctor()
-        return AgentMetadata(name=self.name, version=result.version)
+        return AgentMetadata(
+            name=self.name,
+            version=result.version,
+            metadata={"transport": "claude-code-stream-json"},
+        )
 
     async def run(self, request: AgentRunRequest, emit: EventEmitter) -> AgentRunResult:
         started = time.perf_counter()
-        command_prefix = _resolve_command(self.executable) or (self.executable,)
-        command = [
-            *command_prefix,
-            *self.exec_prefix,
-            "--json",
-            "--color",
-            "never",
-            "--sandbox",
-            "workspace-write",
-            "-C",
-            str(request.workspace),
-            *self.extra_args,
-            "-",
-        ]
+        command_prefix = resolve_command(self.executable) or (self.executable,)
+        command = [*command_prefix, *self.print_prefix, *self.extra_args]
         process = await asyncio.create_subprocess_exec(
             *command,
+            cwd=request.workspace,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -95,8 +97,9 @@ class CodexCliAdapter:
         await process.stdin.drain()
         process.stdin.close()
         stderr_parts: list[str] = []
+        normalizer = ClaudeEventNormalizer()
 
-        # 必须并发读取 stdout 和 stderr，否则任一管道写满后都可能阻塞 Agent。
+        # 两个输出流必须并发排空，避免长时间 Agent 运行因管道写满而停住。
         async def read_stdout() -> None:
             assert process.stdout is not None
             async for raw_line in process.stdout:
@@ -109,7 +112,8 @@ class CodexCliAdapter:
                     raw_event = line
                 if not isinstance(raw_event, (dict, str)):
                     raw_event = {"value": raw_event}
-                await emit(normalize_codex_event(raw_event))
+                for event in normalizer.normalize(raw_event):
+                    await emit(event)
 
         async def read_stderr() -> None:
             assert process.stderr is not None
@@ -119,7 +123,7 @@ class CodexCliAdapter:
                 await emit(
                     EventDraft(
                         type=EventType.SYSTEM_NOTE,
-                        source="codex",
+                        source="claude",
                         source_event_type="stderr",
                         payload={"stream": "stderr", "text": line.rstrip("\r\n")},
                         raw_event=line.rstrip("\r\n"),

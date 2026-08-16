@@ -167,6 +167,7 @@ class RunService:
             )
             metrics = self._calculate_metrics(self.storage.list_events(run_id), started)
             metrics["run_success"] = final_status == RunStatus.PASSED
+            model_name = self._reported_model(self.storage.list_events(run_id))
             self.storage.transition_run(
                 run_id,
                 final_status,
@@ -174,6 +175,7 @@ class RunService:
                 validation_status=validation_status,
                 metrics=metrics,
                 error=error,
+                model_name=model_name,
             )
         except Exception as exc:
             error = str(exc)
@@ -188,6 +190,7 @@ class RunService:
                 )
                 metrics = self._calculate_metrics(self.storage.list_events(run_id), started)
                 metrics["run_success"] = False
+                model_name = self._reported_model(self.storage.list_events(run_id))
                 self.storage.transition_run(
                     run_id,
                     RunStatus.ERROR,
@@ -196,6 +199,7 @@ class RunService:
                     validation_status=validation_status,
                     metrics=metrics,
                     error=error,
+                    model_name=model_name,
                 )
         finally:
             if workspace is not None:
@@ -245,3 +249,15 @@ class RunService:
             "tokens_total": tokens_total,
             "cost": usage.get("cost"),
         }
+
+    @staticmethod
+    def _reported_model(events: list[dict[str, Any]]) -> str | None:
+        # Adapter 在启动前不一定知道用户路由到的模型，因此从真实事件中回填。
+        for event in events:
+            payload = event.get("payload")
+            if not isinstance(payload, dict):
+                continue
+            model = payload.get("model")
+            if isinstance(model, str) and model.strip() and model != "<synthetic>":
+                return model
+        return None

@@ -11,6 +11,8 @@ from uuid import UUID
 
 import typer
 
+from exagium.agents.base import AgentAdapter
+from exagium.agents.claude_cli import ClaudeCliAdapter
 from exagium.agents.codex_cli import CodexCliAdapter
 from exagium.config import Settings
 from exagium.core.errors import ExagiumError
@@ -32,6 +34,13 @@ runs_app = typer.Typer(help="Inspect persisted runs.", no_args_is_help=True)
 experiment_app = typer.Typer(help="Run repeatable agent experiments.", no_args_is_help=True)
 app.add_typer(runs_app, name="runs")
 app.add_typer(experiment_app, name="experiment")
+
+
+def _agent_adapters() -> dict[str, AgentAdapter]:
+    return {
+        "codex": CodexCliAdapter(),
+        "claude": ClaudeCliAdapter(),
+    }
 
 
 def _storage(settings: Settings) -> Storage:
@@ -62,25 +71,30 @@ def _render_semantic_step(step: SemanticStep | None) -> str:
 
 @app.command()
 def doctor(
-    component: Annotated[str | None, typer.Argument(help="Optional component: codex")] = None,
+    component: Annotated[
+        str | None,
+        typer.Argument(help="Optional component: codex or claude"),
+    ] = None,
     home: Annotated[Path | None, typer.Option(help="Exagium state directory.")] = None,
 ) -> None:
-    """Check the local tools and state needed to run Exagium."""
-    if component not in {None, "codex"}:
-        raise typer.BadParameter("Only the codex component is supported in V0")
+    """检查运行 Exagium 所需的本地工具和状态。"""
+    adapters = _agent_adapters()
+    if component not in {None, *adapters}:
+        raise typer.BadParameter("Supported agent components: codex, claude")
     typer.echo("Exagium Doctor\n")
-    adapter = CodexCliAdapter()
-    codex_result = asyncio.run(adapter.doctor())
-    if component == "codex":
-        _render_check(codex_result.available, "codex", codex_result.version or codex_result.error)
-        if not codex_result.available:
+    agent_results = {name: asyncio.run(adapter.doctor()) for name, adapter in adapters.items()}
+    if component:
+        result = agent_results[component]
+        _render_check(result.available, component, result.version or result.error)
+        if not result.available:
             raise typer.Exit(1)
         return
 
     settings = Settings.load(home)
     git_path = shutil.which("git")
     _render_check(git_path is not None, "git", git_path)
-    _render_check(codex_result.available, "codex", codex_result.version or codex_result.error)
+    for name, result in agent_results.items():
+        _render_check(result.available, name, result.version or result.error)
 
     database_ok = False
     database_detail = str(settings.database_path)
@@ -103,7 +117,9 @@ def doctor(
         workspace_detail = str(exc)
     _render_check(workspace_ok, "workspace", workspace_detail)
 
-    ready = all([git_path, codex_result.available, database_ok, workspace_ok])
+    ready = bool(git_path and database_ok and workspace_ok and any(
+        result.available for result in agent_results.values()
+    ))
     typer.echo("\nReady." if ready else "\nNot ready.")
     if not ready:
         raise typer.Exit(1)
@@ -127,17 +143,18 @@ def run_task(
     ] = False,
     home: Annotated[Path | None, typer.Option(help="Exagium state directory.")] = None,
 ) -> None:
-    """Run one task with an installed local agent."""
+    """使用已安装的本地 Agent 运行单个任务。"""
     del label
-    if agent != "codex":
-        raise typer.BadParameter("V0 supports only --agent codex")
     try:
         task = load_task_manifest(task_path)
         settings = Settings.load(home)
-        adapter = CodexCliAdapter()
+        adapters = _agent_adapters()
+        if agent not in adapters:
+            raise ExagiumError(f"Unsupported agent: {agent}")
+        adapter = adapters[agent]
         doctor_result = asyncio.run(adapter.doctor())
         if not doctor_result.available:
-            raise ExagiumError(doctor_result.error or "Codex is unavailable")
+            raise ExagiumError(doctor_result.error or f"Agent is unavailable: {agent}")
         service = RunService(settings=settings, storage=_storage(settings), adapter=adapter)
         outcome = asyncio.run(
             service.execute(task, keep_workspace=keep_workspace, timeout_seconds=timeout)
@@ -174,16 +191,16 @@ def run_experiment(
     json_output: Annotated[bool, typer.Option("--json")] = False,
     home: Annotated[Path | None, typer.Option(help="Exagium state directory.")] = None,
 ) -> None:
-    """Run every experiment variant sequentially."""
+    """按顺序运行实验中的每个变体。"""
     try:
         experiment = load_experiment_manifest(experiment_path)
         task = load_task_manifest(experiment.task)
         settings = Settings.load(home)
-        adapters = {"codex": CodexCliAdapter()}
+        adapters = _agent_adapters()
         requested_agents = {variant.agent for variant in experiment.variants}
         unsupported = sorted(requested_agents - adapters.keys())
         if unsupported:
-            raise ExagiumError(f"V0 supports only the codex agent, not: {', '.join(unsupported)}")
+            raise ExagiumError(f"Unsupported experiment agent(s): {', '.join(unsupported)}")
         for agent_name in sorted(requested_agents):
             result = asyncio.run(adapters[agent_name].doctor())
             if not result.available:
@@ -233,7 +250,7 @@ def compare_runs(
     json_output: Annotated[bool, typer.Option("--json")] = False,
     home: Annotated[Path | None, typer.Option(help="Exagium state directory.")] = None,
 ) -> None:
-    """Compare two terminal runs and show their first semantic divergence."""
+    """对比两条已结束的运行并显示首次语义分歧。"""
     try:
         comparison = CompareService(_storage(Settings.load(home))).compare(run_a, run_b)
     except ExagiumError as exc:
@@ -263,7 +280,7 @@ def serve(
     port: Annotated[int, typer.Option(min=1, max=65535)] = 8000,
     home: Annotated[Path | None, typer.Option(help="Exagium state directory.")] = None,
 ) -> None:
-    """Serve the read API and built Web UI."""
+    """启动只读 API 和已构建的 Web UI。"""
     import uvicorn
 
     from exagium.api.app import create_app
@@ -277,7 +294,7 @@ def list_runs(
     json_output: Annotated[bool, typer.Option("--json")] = False,
     home: Annotated[Path | None, typer.Option()] = None,
 ) -> None:
-    """List recent runs."""
+    """列出最近的运行。"""
     rows = _storage(Settings.load(home)).list_runs(limit)
     if json_output:
         typer.echo(json.dumps(rows, ensure_ascii=False, indent=2))
@@ -292,7 +309,7 @@ def show_run(
     events: Annotated[bool, typer.Option(help="Include the normalized trace.")] = False,
     home: Annotated[Path | None, typer.Option()] = None,
 ) -> None:
-    """Show a persisted run and its validation results."""
+    """显示已持久化的运行及其验证结果。"""
     storage = _storage(Settings.load(home))
     row = storage.get_run(run_id)
     if row is None:
