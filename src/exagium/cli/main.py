@@ -194,7 +194,7 @@ def run_experiment(
     """按顺序运行实验中的每个变体。"""
     try:
         experiment = load_experiment_manifest(experiment_path)
-        task = load_task_manifest(experiment.task)
+        tasks = [load_task_manifest(path) for path in experiment.task_paths]
         settings = Settings.load(home)
         adapters = _agent_adapters()
         requested_agents = {variant.agent for variant in experiment.variants}
@@ -213,7 +213,7 @@ def run_experiment(
         outcome = asyncio.run(
             service.execute(
                 experiment,
-                task,
+                tasks,
                 keep_workspace=keep_workspace,
                 timeout_seconds=timeout,
             )
@@ -227,6 +227,7 @@ def run_experiment(
         return
 
     typer.echo(f"Experiment: {outcome.name}")
+    typer.echo(f"Tasks: {len(outcome.task_ids)}")
     typer.echo(f"Runs: {outcome.runs}")
     typer.echo(f"Passed: {outcome.passed}")
     typer.echo(f"Failed: {outcome.failed}")
@@ -236,6 +237,8 @@ def run_experiment(
         typer.echo(f"Median duration: {outcome.median_duration_ms:.0f} ms")
     if outcome.median_tokens is not None:
         typer.echo(f"Median tokens: {outcome.median_tokens:.0f}")
+    if experiment.design.randomize_order:
+        typer.echo(f"Allocation seed: {experiment.design.allocation_seed}")
     for variant in outcome.variants:
         typer.echo(
             f"  {variant.label}: {variant.passed}/{variant.runs} passed "

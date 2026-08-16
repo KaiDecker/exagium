@@ -46,7 +46,17 @@ export interface Experiment {
   task_id: string;
   created_at: string;
   configuration: {
-    variants?: Array<{ id: string; label?: string; repeat?: number }>;
+    tasks?: string[];
+    variants?: Array<{ id: string; label?: string; repeat?: number | null }>;
+    design?: {
+      repeats: number;
+      randomize_order: boolean;
+      block_by: string[];
+      allocation_seed: number | null;
+    };
+    analysis?: {
+      confidence_level: number;
+    };
   };
   metrics: Metrics;
   variants: Array<{ id: string } & Metrics>;

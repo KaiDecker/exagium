@@ -115,6 +115,7 @@ footer { min-height: 76px; padding: 20px clamp(18px, 4vw, 58px); border-top: 1px
 .panel-heading > div { min-width: 0; }
 .panel-heading h2 { color: var(--ink); font-size: clamp(25px, 3vw, 34px); letter-spacing: -.025em; margin: 8px 0; overflow-wrap: anywhere; }
 .panel-heading code, .run-hero code { color: var(--blue-dark); font-size: .92em; }
+.design-note { display: block; width: fit-content; margin-top: 10px; color: #41678f; font-size: 10px; }
 .id-stamp { color: var(--faint); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; white-space: nowrap; font: 9px var(--mono); }
 .metric-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin: 24px 0; padding: 1px; background: var(--line); border-radius: 13px; overflow: hidden; }
 .metric-grid.four { grid-template-columns: repeat(4, 1fr); }

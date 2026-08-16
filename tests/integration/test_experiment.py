@@ -11,6 +11,7 @@ from exagium.agents.codex_cli import CodexCliAdapter
 from exagium.config import Settings
 from exagium.core.models import (
     CommandSpec,
+    ExperimentDesign,
     ExperimentManifest,
     ExperimentVariant,
     RepoSpec,
@@ -144,4 +145,83 @@ async def test_experiment_runs_codex_and_claude_variants_together(sandbox_path: 
     assert {(row["variant_id"], row["agent_name"]) for row in rows} == {
         ("codex-default", "codex"),
         ("claude-default", "claude"),
+    }
+
+
+@pytest.mark.asyncio
+async def test_multi_task_experiment_persists_blocked_random_allocation(
+    sandbox_path: Path,
+) -> None:
+    repo = sandbox_path / "source"
+    repo.mkdir()
+    git(repo, "init")
+    git(repo, "config", "user.name", "Exagium Test")
+    git(repo, "config", "user.email", "exagium@example.invalid")
+    (repo / "result.txt").write_text("broken", encoding="utf-8")
+    git(repo, "add", "result.txt")
+    git(repo, "commit", "-m", "initial")
+
+    fake_agent = Path(__file__).parents[1] / "fixtures" / "fake_agent.py"
+    adapter = CodexCliAdapter(executable=sys.executable, exec_prefix=(str(fake_agent),))
+    validation = [
+        CommandSpec(
+            name="result check",
+            command=(
+                f'"{sys.executable}" -c "from pathlib import Path; '
+                "assert Path('result.txt').read_text() == 'fixed'\""
+            ),
+        )
+    ]
+    tasks = [
+        TaskManifest(
+            id=task_id,
+            name=task_id,
+            repo=RepoSpec(path=repo, base_ref="HEAD"),
+            prompt="Fix result.txt",
+            validation=validation,
+        )
+        for task_id in ("task-a", "task-b")
+    ]
+    experiment = ExperimentManifest(
+        id="blocked-multi-task",
+        tasks=[Path("task-a.yaml"), Path("task-b.yaml")],
+        variants=[
+            ExperimentVariant(id="config-a", agent="codex"),
+            ExperimentVariant(id="config-b", agent="codex"),
+        ],
+        design=ExperimentDesign(
+            repeats=1,
+            randomize_order=True,
+            block_by=["task"],
+            allocation_seed=42,
+        ),
+    )
+    settings = Settings.load(sandbox_path / "state")
+    storage = Storage(create_database_engine(settings.database_path))
+
+    outcome = await ExperimentService(
+        settings=settings,
+        storage=storage,
+        adapters={"codex": adapter},
+    ).execute(experiment, tasks)
+
+    assert outcome.task_ids == ["task-a", "task-b"]
+    assert outcome.runs == 4
+    assert outcome.passed == 4
+    stored = storage.get_experiment(experiment.id)
+    assert stored is not None
+    assert stored["configuration"]["tasks"] == ["task-a", "task-b"]
+    assert stored["configuration"]["design"]["allocation_seed"] == 42
+    allocation = stored["configuration"]["allocation"]
+    assert len(allocation) == 4
+    assert {item["block_id"] for item in allocation} == {
+        "task:task-a:repeat:1",
+        "task:task-b:repeat:1",
+    }
+    rows = storage.list_experiment_runs(experiment.id)
+    assert {(row["task_id"], row["variant_id"]) for row in rows} == {
+        ("task-a", "config-a"),
+        ("task-a", "config-b"),
+        ("task-b", "config-a"),
+        ("task-b", "config-b"),
     }

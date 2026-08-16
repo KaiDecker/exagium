@@ -60,6 +60,10 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
       variant.label ?? variant.id,
     ]),
   );
+  const taskIds = experiment.configuration.tasks?.length
+    ? experiment.configuration.tasks
+    : [experiment.task_id];
+  const design = experiment.configuration.design;
 
   return (
     <section className="experiment-detail panel">
@@ -68,9 +72,14 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
           <span className="eyebrow">实验概览</span>
           <h2>{experiment.name}</h2>
           <p>
-            任务 <code>{experiment.task_id}</code> · 创建于{" "}
+            {taskIds.length === 1 ? <>任务 <code>{taskIds[0]}</code></> : <>包含 {taskIds.length} 个任务</>} · 创建于{" "}
             {new Date(experiment.created_at).toLocaleDateString("zh-CN")}
           </p>
+          {design?.randomize_order && (
+            <small className="design-note">
+              运行顺序已随机安排 · 分配种子 {design.allocation_seed ?? "未记录"}
+            </small>
+          )}
         </div>
         <span className="id-stamp">{experiment.id}</span>
       </div>

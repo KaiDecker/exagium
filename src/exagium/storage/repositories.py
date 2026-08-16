@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -98,9 +99,21 @@ class Storage:
                 row.metadata_json = _json(task.metadata)
             session.commit()
 
-    def register_experiment(self, experiment: ExperimentManifest, task_id: str) -> None:
+    def register_experiment(
+        self,
+        experiment: ExperimentManifest,
+        task_id: str,
+        *,
+        task_ids: Sequence[str] | None = None,
+        allocation: Sequence[Mapping[str, Any]] | None = None,
+    ) -> None:
+        resolved_task_ids = list(task_ids) if task_ids is not None else [task_id]
         configuration = {
             "variants": [variant.model_dump() for variant in experiment.variants],
+            "tasks": resolved_task_ids,
+            "design": experiment.design.model_dump(),
+            "analysis": experiment.analysis.model_dump(),
+            "allocation": list(allocation or []),
             "metadata": experiment.metadata,
             "manifest_path": (str(experiment.manifest_path) if experiment.manifest_path else None),
         }

@@ -43,9 +43,12 @@ def summarize_variant(
 
 def summarize_experiment(
     experiment: ExperimentManifest,
-    task_id: str,
+    task_ids: str | Sequence[str],
     outcomes_by_variant: Sequence[tuple[ExperimentVariant, Sequence[RunOutcome]]],
 ) -> ExperimentOutcome:
+    resolved_task_ids = [task_ids] if isinstance(task_ids, str) else list(task_ids)
+    if not resolved_task_ids:
+        raise ValueError("at least one task id is required")
     summaries = [summarize_variant(variant, outcomes) for variant, outcomes in outcomes_by_variant]
     outcomes = [
         outcome
@@ -57,7 +60,8 @@ def summarize_experiment(
     return ExperimentOutcome(
         experiment_id=experiment.id,
         name=experiment.name or experiment.id,
-        task_id=task_id,
+        task_id=resolved_task_ids[0],
+        task_ids=resolved_task_ids,
         runs=total,
         passed=passed,
         failed=sum(outcome.status == RunStatus.FAILED for outcome in outcomes),

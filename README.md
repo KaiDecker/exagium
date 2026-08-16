@@ -10,7 +10,7 @@ records what happened, runs independent validation, and persists evidence for la
 
 This repository currently implements the Phase 0/1 single-run milestone, Phase 2 sequential
 experiments, Phase 3 deterministic run comparison, the Phase 4 read API and Web UI, and the
-Phase 5 Claude Code CLI adapter:
+Phase 5 Claude Code CLI adapter, and the Phase 5.5 experiment-design foundation:
 
 ```text
 Task → Codex / Claude Code → Trace → Validation → PASS / FAIL / ERROR
@@ -32,11 +32,13 @@ Task → Codex / Claude Code → Trace → Validation → PASS / FAIL / ERROR
 - Unknown or malformed future Codex events are retained without crashing the run.
 - Validation commands run after the agent exits and determine PASS/FAIL independently.
 - A binary-capable Git diff, validation logs, metrics, and terminal status are stored in SQLite.
-- Experiment manifests repeat one or more Codex variants sequentially and persist run membership.
+- Experiment manifests repeat Codex and/or Claude Code variants and persist run membership.
 - Experiment summaries report status counts, success rate, median duration, and nullable usage.
+- V2 experiment manifests support multiple tasks, shared repeat counts, explicit analysis plans,
+  reproducible randomized allocation, and task-blocked scheduling.
 - Run comparison normalizes traces into semantic steps and reports the first divergence.
 - A read-only FastAPI surface powers Chinese pixel-style Experiments, Run Detail, and Compare
-  Runs pages.
+  Runs pages with a light Apple-inspired pixel visual system.
 - Tests use a fake JSONL agent and require no Codex credentials or network access.
 
 Exagium does not call an LLM API, manage provider keys, or implement its own agent loop.
@@ -208,6 +210,37 @@ exagium experiment run experiments\auth.yaml --json
 FAILED and ERROR runs are recorded as experiment results and do not stop later repetitions.
 Usage medians remain empty when an agent does not report token data.
 
+For a cross-agent, multi-task experiment, use the V2 design fields:
+
+```yaml
+id: codex-vs-claude-pilot
+tasks:
+  - ../tasks/task-a.yaml
+  - ../tasks/task-b.yaml
+
+variants:
+  - id: codex-default
+    agent: codex
+  - id: claude-default
+    agent: claude
+
+design:
+  repeats: 10
+  randomize_order: true
+  block_by: [task]
+  allocation_seed: 20260816
+
+analysis:
+  primary_metric:
+    type: success
+  confidence_level: 0.95
+```
+
+The allocation seed reproduces which Task/variant run is scheduled at each position. It does not
+claim to control the coding agent's own randomness. The complete allocation plan is persisted in
+the experiment configuration before the first run starts. Legacy `task` and per-variant `repeat`
+fields remain supported.
+
 ## Compare two runs
 
 ```powershell
@@ -274,8 +307,10 @@ and removes the worktree.
 
 ## Roadmap boundaries
 
-The next milestone is the uncertainty-aware Statistical Experiment Engine described in the
-extension roadmap. Advanced harness capabilities remain demand-driven. V0 intentionally excludes
+The current milestone is the uncertainty-aware Statistical Experiment Engine described in the
+extension roadmap. Experiment design, randomized allocation, and Task blocking are implemented;
+confidence intervals and effect estimation come next. Advanced harness capabilities remain
+demand-driven. V0 intentionally excludes
 a custom agent loop, multi-agent orchestration, RAG, memory, Redis, Kafka, distributed workers,
 and AI root-cause analysis.
 

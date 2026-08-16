@@ -1,0 +1,37 @@
+id: codex-vs-claude-pilot
+name: Codex vs Claude Code pilot
+
+# Task 使用清单路径；运行时会读取并注册每个 Task。
+tasks:
+  - ../tasks/example.yaml
+  - ../tasks/demo-auth-race.yaml
+
+variants:
+  - id: codex-default
+    agent: codex
+    label: Codex default
+  - id: claude-default
+    agent: claude
+    label: Claude Code default
+
+# 这个种子只复现实验分配顺序，不控制 Agent 自身的随机行为。
+design:
+  repeats: 2
+  randomize_order: true
+  block_by:
+    - task
+  allocation_seed: 20260816
+
+analysis:
+  primary_metric:
+    type: success
+  secondary_metrics:
+    - duration_ms
+    - command_count
+    - tool_call_count
+    - tokens_total
+  confidence_level: 0.95
+  bootstrap:
+    enabled: true
+    cluster_by: task
+    samples: 5000
