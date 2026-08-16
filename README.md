@@ -36,6 +36,8 @@ Task → Codex / Claude Code → Trace → Validation → PASS / FAIL / ERROR
 - Experiment summaries report status counts, success rate, median duration, and nullable usage.
 - V2 experiment manifests support multiple tasks, shared repeat counts, explicit analysis plans,
   reproducible randomized allocation, and task-blocked scheduling.
+- Observed task success uses `PASS / (PASS + FAIL)` and includes a configurable Wilson confidence
+  interval; `ERROR` and `CANCELLED` remain visible without silently becoming Agent failures.
 - Run comparison normalizes traces into semantic steps and reports the first divergence.
 - A read-only FastAPI surface powers Chinese pixel-style Experiments, Run Detail, and Compare
   Runs pages with a light Apple-inspired pixel visual system.
@@ -241,6 +243,21 @@ claim to control the coding agent's own randomness. The complete allocation plan
 the experiment configuration before the first run starts. Legacy `task` and per-variant `repeat`
 fields remain supported.
 
+Experiment output reports the observed success rate together with its Wilson interval:
+
+```text
+Passed: 14
+Failed: 6
+Errors: 2
+Evaluable runs: 20
+Observed success rate: 70.00%
+95% Wilson CI: [48.10%, 85.45%]
+```
+
+The two `ERROR` runs are reported but are not treated as failed independent validations. This
+interval quantifies uncertainty around the observed task-success proportion; it does not prove
+that the Agent's unknown true success probability lies inside one particular computed interval.
+
 ## Compare two runs
 
 ```powershell
@@ -308,8 +325,8 @@ and removes the worktree.
 ## Roadmap boundaries
 
 The current milestone is the uncertainty-aware Statistical Experiment Engine described in the
-extension roadmap. Experiment design, randomized allocation, and Task blocking are implemented;
-confidence intervals and effect estimation come next. Advanced harness capabilities remain
+extension roadmap. Experiment design, randomized allocation, Task blocking, and Wilson confidence
+intervals are implemented; variant effect estimation comes next. Advanced harness capabilities remain
 demand-driven. V0 intentionally excludes
 a custom agent loop, multi-agent orchestration, RAG, memory, Redis, Kafka, distributed workers,
 and AI root-cause analysis.

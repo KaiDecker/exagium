@@ -13,7 +13,14 @@ export interface Metrics {
   passed?: number;
   failed?: number;
   errors?: number;
-  success_rate?: number;
+  evaluable_runs?: number;
+  success_rate?: number | null;
+  success_interval?: {
+    lower: number;
+    upper: number;
+    confidence_level: number;
+    method: "wilson";
+  } | null;
   duration_ms?: number | null;
   median_duration_ms?: number | null;
   tokens_total?: number | null;

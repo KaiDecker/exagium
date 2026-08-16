@@ -11,8 +11,14 @@ import {
   shortId,
   StatusBadge,
 } from "../components";
-import type { Experiment, Run } from "../types";
+import type { Experiment, Metrics, Run } from "../types";
 import { ExperimentMotif } from "../Shell";
+
+function intervalLabel(interval: Metrics["success_interval"]) {
+  if (!interval) return null;
+  const level = Math.round(interval.confidence_level * 100);
+  return `${level}% 区间 ${interval.lower}%–${interval.upper}%`;
+}
 
 function RunTable({ runs }: { runs: Run[] }) {
   return (
@@ -64,6 +70,8 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
     ? experiment.configuration.tasks
     : [experiment.task_id];
   const design = experiment.configuration.design;
+  const overallRate = experiment.metrics.success_rate;
+  const overallInterval = intervalLabel(experiment.metrics.success_interval);
 
   return (
     <section className="experiment-detail panel">
@@ -86,7 +94,15 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
 
       <div className="metric-grid four">
         <Metric label="运行次数" value={experiment.metrics.runs ?? 0} />
-        <Metric label="成功率" value={`${experiment.metrics.success_rate ?? 0}%`} />
+        <Metric
+          label="观察成功率"
+          value={overallRate == null ? "—" : `${overallRate}%`}
+          note={
+            experiment.metrics.evaluable_runs
+              ? `${experiment.metrics.passed ?? 0}/${experiment.metrics.evaluable_runs} 通过${overallInterval ? ` · ${overallInterval}` : ""}`
+              : "还没有可评估的运行"
+          }
+        />
         <Metric
           label="耗时中位数"
           value={formatDuration(experiment.metrics.median_duration_ms)}
@@ -102,18 +118,28 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
       </div>
       <div className="variant-list">
         {experiment.variants.length ? (
-          experiment.variants.map((variant) => (
-            <div className="variant-row" key={variant.id}>
-              <div>
-                <strong>{labelById.get(variant.id) ?? variant.id}</strong>
-                <small>共运行 {variant.runs ?? 0} 次</small>
+          experiment.variants.map((variant) => {
+            const rate = variant.success_rate;
+            const interval = intervalLabel(variant.success_interval);
+            return (
+              <div className="variant-row" key={variant.id}>
+                <div>
+                  <strong>{labelById.get(variant.id) ?? variant.id}</strong>
+                  <small>
+                    {variant.passed ?? 0}/{variant.evaluable_runs ?? 0} 通过
+                    {interval ? ` · ${interval}` : " · 暂无区间"}
+                  </small>
+                </div>
+                <div
+                  className="success-track"
+                  aria-label={rate == null ? "暂无成功率" : `观察成功率 ${rate}%`}
+                >
+                  <i style={{ width: `${rate ?? 0}%` }} />
+                </div>
+                <b>{rate == null ? "—" : `${rate}%`}</b>
               </div>
-              <div className="success-track" aria-label={`成功率 ${variant.success_rate}%`}>
-                <i style={{ width: `${variant.success_rate ?? 0}%` }} />
-              </div>
-              <b>{variant.success_rate ?? 0}%</b>
-            </div>
-          ))
+            );
+          })
         ) : (
           <p className="muted">这组实验还没有跑出可比较的数据。</p>
         )}

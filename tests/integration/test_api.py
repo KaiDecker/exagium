@@ -160,7 +160,14 @@ def test_read_api_exposes_experiment_run_evidence_and_comparison(sandbox_path: P
 
     experiments = client.get("/api/experiments").json()
     assert experiments[0]["metrics"]["runs"] == 2
+    assert experiments[0]["metrics"]["evaluable_runs"] == 2
     assert experiments[0]["metrics"]["success_rate"] == 50
+    assert experiments[0]["metrics"]["success_interval"] == {
+        "lower": 9.45,
+        "upper": 90.55,
+        "confidence_level": 0.95,
+        "method": "wilson",
+    }
     assert experiments[0]["metrics"]["median_duration_ms"] == 200
     assert experiments[0]["metrics"]["median_tokens"] == 50
     assert client.get(f"/api/runs/{passed}").json()["status"] == "PASSED"

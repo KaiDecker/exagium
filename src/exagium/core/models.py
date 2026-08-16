@@ -249,6 +249,15 @@ class RunOutcome(BaseModel):
     error: str | None = None
 
 
+class ConfidenceIntervalSummary(BaseModel):
+    """API 使用百分数表达的二项比例置信区间。"""
+
+    lower: float
+    upper: float
+    confidence_level: float
+    method: Literal["wilson"] = "wilson"
+
+
 class ExperimentVariantSummary(BaseModel):
     id: str
     label: str
@@ -258,7 +267,9 @@ class ExperimentVariantSummary(BaseModel):
     failed: int
     errors: int
     cancelled: int
-    success_rate: float
+    evaluable_runs: int
+    success_rate: float | None
+    success_interval: ConfidenceIntervalSummary | None
     median_duration_ms: float | None = None
     median_tokens: float | None = None
 
@@ -273,7 +284,9 @@ class ExperimentOutcome(BaseModel):
     failed: int
     errors: int
     cancelled: int
-    success_rate: float
+    evaluable_runs: int
+    success_rate: float | None
+    success_interval: ConfidenceIntervalSummary | None
     median_duration_ms: float | None = None
     median_tokens: float | None = None
     variants: list[ExperimentVariantSummary]

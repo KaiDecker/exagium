@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from exagium.config import Settings
 from exagium.core.errors import ExagiumError
 from exagium.experiments.compare import CompareService
+from exagium.statistics.intervals import wilson_interval
 from exagium.storage.db import create_database_engine
 from exagium.storage.repositories import Storage
 
@@ -26,15 +27,33 @@ def _median(values: list[int | float | None]) -> float | None:
     return float(median(present)) if present else None
 
 
-def _run_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def _run_metrics(
+    rows: list[dict[str, Any]],
+    *,
+    confidence_level: float = 0.95,
+) -> dict[str, Any]:
     total = len(rows)
     passed = sum(row["status"] == "PASSED" for row in rows)
+    failed = sum(row["status"] == "FAILED" for row in rows)
+    evaluable_runs = passed + failed
+    interval = wilson_interval(passed, evaluable_runs, confidence_level=confidence_level)
     return {
         "runs": total,
         "passed": passed,
-        "failed": sum(row["status"] == "FAILED" for row in rows),
+        "failed": failed,
         "errors": sum(row["status"] == "ERROR" for row in rows),
-        "success_rate": round((passed / total * 100) if total else 0.0, 2),
+        "evaluable_runs": evaluable_runs,
+        "success_rate": round(passed / evaluable_runs * 100, 2) if evaluable_runs else None,
+        "success_interval": (
+            {
+                "lower": round(interval.lower * 100, 2),
+                "upper": round(interval.upper * 100, 2),
+                "confidence_level": interval.confidence_level,
+                "method": "wilson",
+            }
+            if interval
+            else None
+        ),
         "median_duration_ms": _median([row["metrics"].get("duration_ms") for row in rows]),
         "median_tokens": _median([row["metrics"].get("tokens_total") for row in rows]),
     }
@@ -42,17 +61,24 @@ def _run_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _experiment_view(storage: Storage, row: dict[str, Any]) -> dict[str, Any]:
     runs = storage.list_experiment_runs(row["id"])
+    confidence_level = float(
+        row["configuration"].get("analysis", {}).get("confidence_level", 0.95)
+    )
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for run in runs:
         grouped[run["variant_id"] or "unassigned"].append(run)
     variants = [
         {
             "id": variant_id,
-            **_run_metrics(variant_runs),
+            **_run_metrics(variant_runs, confidence_level=confidence_level),
         }
         for variant_id, variant_runs in sorted(grouped.items())
     ]
-    return {**row, "metrics": _run_metrics(runs), "variants": variants}
+    return {
+        **row,
+        "metrics": _run_metrics(runs, confidence_level=confidence_level),
+        "variants": variants,
+    }
 
 
 def _frontend_dist() -> Path | None:

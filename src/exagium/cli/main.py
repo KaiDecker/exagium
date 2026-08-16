@@ -232,7 +232,17 @@ def run_experiment(
     typer.echo(f"Passed: {outcome.passed}")
     typer.echo(f"Failed: {outcome.failed}")
     typer.echo(f"Errors: {outcome.errors}")
-    typer.echo(f"Success rate: {outcome.success_rate:.2f}%")
+    typer.echo(f"Evaluable runs: {outcome.evaluable_runs}")
+    if outcome.success_rate is not None:
+        typer.echo(f"Observed success rate: {outcome.success_rate:.2f}%")
+    else:
+        typer.echo("Observed success rate: not available")
+    if outcome.success_interval is not None:
+        level = outcome.success_interval.confidence_level * 100
+        typer.echo(
+            f"{level:g}% Wilson CI: "
+            f"[{outcome.success_interval.lower:.2f}%, {outcome.success_interval.upper:.2f}%]"
+        )
     if outcome.median_duration_ms is not None:
         typer.echo(f"Median duration: {outcome.median_duration_ms:.0f} ms")
     if outcome.median_tokens is not None:
@@ -240,10 +250,15 @@ def run_experiment(
     if experiment.design.randomize_order:
         typer.echo(f"Allocation seed: {experiment.design.allocation_seed}")
     for variant in outcome.variants:
-        typer.echo(
-            f"  {variant.label}: {variant.passed}/{variant.runs} passed "
-            f"({variant.success_rate:.2f}%)"
-        )
+        rate = f"{variant.success_rate:.2f}%" if variant.success_rate is not None else "n/a"
+        typer.echo(f"  {variant.label}: {variant.passed}/{variant.evaluable_runs} passed ({rate})")
+        if variant.success_interval is not None:
+            level = variant.success_interval.confidence_level * 100
+            typer.echo(
+                f"    {level:g}% Wilson CI: "
+                f"[{variant.success_interval.lower:.2f}%, "
+                f"{variant.success_interval.upper:.2f}%]"
+            )
 
 
 @app.command("compare")

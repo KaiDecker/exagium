@@ -39,8 +39,17 @@ def test_experiment_metrics_count_statuses_and_ignore_missing_usage() -> None:
     assert summary.passed == 1
     assert summary.failed == 1
     assert summary.errors == 1
-    assert summary.success_rate == 33.33
+    assert summary.evaluable_runs == 2
+    assert summary.success_rate == 50
+    assert summary.success_interval is not None
+    assert summary.success_interval.lower == 9.45
+    assert summary.success_interval.upper == 90.55
     assert summary.median_duration_ms == 200
     assert summary.median_tokens == 20
     assert summary.variants[0].success_rate == 50
+    assert summary.variants[0].evaluable_runs == 2
+    assert summary.variants[0].success_interval is not None
+    assert summary.variants[1].evaluable_runs == 0
+    assert summary.variants[1].success_rate is None
+    assert summary.variants[1].success_interval is None
     assert summary.variants[1].label == "Second"
