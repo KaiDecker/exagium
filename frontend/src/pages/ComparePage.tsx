@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, GitCompareArrows } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "../api";
 import {
@@ -66,33 +67,33 @@ export function ComparePage() {
     <div className="page compare-page">
       <header className="page-header compare-header">
         <div>
-          <span className="eyebrow">确定性轨迹对齐</span>
-          <h1>找到行为改变的<br />第一个瞬间。</h1>
-          <p>使用语义签名定位首次有效分歧，无需依赖 LLM Judge。</p>
+          <span className="eyebrow">运行对比</span>
+          <h1>两次运行，<br />差在哪一步？</h1>
+          <p>把两次运行放在一起，快速找到行为开始不同的位置。</p>
         </div>
-        <div className="compare-glyph" aria-hidden="true"><span>A</span><i /><span>B</span></div>
+        <div className="compare-glyph" aria-hidden="true"><span>A</span><GitCompareArrows /><span>B</span></div>
       </header>
 
       <form className="compare-form panel" onSubmit={submit}>
-        <label>运行 A<select value={runA} onChange={(event) => setRunA(event.target.value)}><option value="">选择运行记录</option>{runs.data?.map((run) => <option value={run.id} key={run.id}>{shortId(run.id)} · {statusLabel(run.status)} · {run.variant_id ?? run.agent_name}</option>)}</select></label>
-        <div className="versus">对</div>
-        <label>运行 B<select value={runB} onChange={(event) => setRunB(event.target.value)}><option value="">选择运行记录</option>{runs.data?.map((run) => <option value={run.id} key={run.id}>{shortId(run.id)} · {statusLabel(run.status)} · {run.variant_id ?? run.agent_name}</option>)}</select></label>
-        <button type="submit" disabled={!runA || !runB || runA === runB}>开始对比</button>
+        <label>第一次运行<select value={runA} onChange={(event) => setRunA(event.target.value)}><option value="">选择一条运行</option>{runs.data?.map((run) => <option value={run.id} key={run.id}>{shortId(run.id)} · {statusLabel(run.status)} · {run.variant_id ?? run.agent_name}</option>)}</select></label>
+        <div className="versus"><ArrowRight size={17} strokeWidth={1.8} /></div>
+        <label>第二次运行<select value={runB} onChange={(event) => setRunB(event.target.value)}><option value="">再选一条运行</option>{runs.data?.map((run) => <option value={run.id} key={run.id}>{shortId(run.id)} · {statusLabel(run.status)} · {run.variant_id ?? run.agent_name}</option>)}</select></label>
+        <button type="submit" disabled={!runA || !runB || runA === runB}>对比这两次</button>
       </form>
 
-      {comparison.isLoading && <Loading label="正在对齐执行轨迹" />}
+      {comparison.isLoading && <Loading label="正在比较两次运行" />}
       {comparison.error && <ErrorPanel error={comparison.error} />}
-      {!request && <EmptyState title="请选择两条已结束的运行">同一任务下成功与失败的运行通常能揭示最有价值的行为分歧。</EmptyState>}
+      {!request && <EmptyState title="先选两次运行">最好选择同一个任务的两次运行，这样差异会更有参考价值。</EmptyState>}
 
       {comparison.data && (
         <section className="comparison panel">
           <div className="comparison-summary">
-            <div><span>运行 A</span><strong>{shortId(comparison.data.run_a.id)}</strong><StatusBadge status={comparison.data.run_a.status} /></div>
-            <div className="divergence-callout"><span>首次分歧</span><strong>{comparison.data.first_divergence ? `第 ${comparison.data.first_divergence.step} 步` : "无"}</strong><small>{comparison.data.identical ? "两条语义序列一致" : "最早出现的行为变化"}</small></div>
-            <div><span>运行 B</span><strong>{shortId(comparison.data.run_b.id)}</strong><StatusBadge status={comparison.data.run_b.status} /></div>
+            <div><span>第一次运行</span><strong>{shortId(comparison.data.run_a.id)}</strong><StatusBadge status={comparison.data.run_a.status} /></div>
+            <div className="divergence-callout"><span>第一次出现差异</span><strong>{comparison.data.first_divergence ? `第 ${comparison.data.first_divergence.step} 步` : "没有差异"}</strong><small>{comparison.data.identical ? "两次运行的关键步骤一致" : "从这里开始，两次运行走向不同"}</small></div>
+            <div><span>第二次运行</span><strong>{shortId(comparison.data.run_b.id)}</strong><StatusBadge status={comparison.data.run_b.status} /></div>
           </div>
-          {!comparison.data.same_task && <div className="warning">两条运行来自不同任务，请谨慎解释对比结果。</div>}
-          <div className="alignment-header"><span>运行 A 序列</span><span>步骤</span><span>运行 B 序列</span></div>
+          {!comparison.data.same_task && <div className="warning">这两次运行来自不同任务，结果只能作为参考。</div>}
+          <div className="alignment-header"><span>第一次运行</span><span>步骤</span><span>第二次运行</span></div>
           <div className="alignment">
             {aligned.map(({ a, b, number }) => {
               const highlighted = comparison.data?.first_divergence?.step === number;

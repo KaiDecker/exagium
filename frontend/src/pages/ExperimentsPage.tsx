@@ -12,7 +12,7 @@ import {
   StatusBadge,
 } from "../components";
 import type { Experiment, Run } from "../types";
-import { PixelTerminal } from "../Shell";
+import { ExperimentMotif } from "../Shell";
 
 function RunTable({ runs }: { runs: Run[] }) {
   return (
@@ -21,7 +21,7 @@ function RunTable({ runs }: { runs: Run[] }) {
         <thead>
           <tr>
             <th>运行</th>
-            <th>实验变体</th>
+            <th>配置</th>
             <th>状态</th>
             <th>耗时</th>
             <th>命令数</th>
@@ -65,7 +65,7 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
     <section className="experiment-detail panel">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">当前实验</span>
+          <span className="eyebrow">实验概览</span>
           <h2>{experiment.name}</h2>
           <p>
             任务 <code>{experiment.task_id}</code> · 创建于{" "}
@@ -87,8 +87,8 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
 
       <div className="section-heading compact">
         <div>
-          <span className="eyebrow">变体表现</span>
-          <h3>不同配置的可靠性</h3>
+          <span className="eyebrow">配置表现</span>
+          <h3>哪套配置更稳定？</h3>
         </div>
       </div>
       <div className="variant-list">
@@ -97,7 +97,7 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
             <div className="variant-row" key={variant.id}>
               <div>
                 <strong>{labelById.get(variant.id) ?? variant.id}</strong>
-                <small>{variant.runs ?? 0} 次顺序运行</small>
+                <small>共运行 {variant.runs ?? 0} 次</small>
               </div>
               <div className="success-track" aria-label={`成功率 ${variant.success_rate}%`}>
                 <i style={{ width: `${variant.success_rate ?? 0}%` }} />
@@ -106,18 +106,18 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
             </div>
           ))
         ) : (
-          <p className="muted">暂无已完成的实验变体。</p>
+          <p className="muted">这组实验还没有跑出可比较的数据。</p>
         )}
       </div>
 
       <div className="section-heading compact run-heading">
         <div>
-          <span className="eyebrow">证据记录</span>
-          <h3>运行明细</h3>
+          <span className="eyebrow">每次运行</span>
+          <h3>看看具体发生了什么</h3>
         </div>
         <span>{detail.data?.runs.length ?? 0} 条记录</span>
       </div>
-      {detail.isLoading && <Loading label="正在载入运行记录" />}
+      {detail.isLoading && <Loading label="正在读取运行记录" />}
       {detail.error && <ErrorPanel error={detail.error} />}
       {detail.data && <RunTable runs={detail.data.runs} />}
     </section>
@@ -144,30 +144,30 @@ export function ExperimentsPage() {
     <div className="page">
       <header className="page-header">
         <div>
-          <span className="eyebrow">实验档案库</span>
-          <h1>不要相信感觉，<br />让证据说话。</h1>
-          <p>重复执行任务，独立验证结果，对比每一次 Agent 行为。</p>
+          <span className="eyebrow">Agent 实验</span>
+          <h1>看结果，<br />也看稳定性。</h1>
+          <p>同一个任务多跑几次，看看 Agent 到底稳不稳。</p>
         </div>
         <div className="header-index">
           <span>{String(rows.length).padStart(2, "0")}</span>
-          <small>已记录<br />实验</small>
+          <small>组实验<br />已记录</small>
         </div>
-        <PixelTerminal />
+        <ExperimentMotif />
       </header>
 
       {!rows.length ? (
         <>
-          <EmptyState title="还没有实验记录">
-            运行 <code>exagium experiment run experiments\demo-auth-stability.yaml</code>
-            创建第一组重复实验数据。
+          <EmptyState title="还没有实验">
+            运行 <code>exagium experiment run experiments\demo-auth-stability.yaml</code>，
+            开始第一组重复测试。
           </EmptyState>
           {recentRuns.error && <ErrorPanel error={recentRuns.error} />}
           {recentRuns.data && recentRuns.data.length > 0 && (
             <section className="standalone-runs panel">
               <div className="section-heading compact">
                 <div>
-                  <span className="eyebrow">已有证据</span>
-                  <h3>最近的独立运行</h3>
+                  <span className="eyebrow">最近运行</span>
+                  <h3>还没加入实验的运行</h3>
                 </div>
                 <span>{recentRuns.data.length} 条记录</span>
               </div>
@@ -179,8 +179,8 @@ export function ExperimentsPage() {
         <>
           <div className="overview-strip">
             <div><span>总运行数</span><strong>{totalRuns}</strong></div>
-            <div><span>验证通过</span><strong>{totalPassed}</strong></div>
-            <div><span>Agent 配置</span><strong>{new Set(rows.flatMap((row) => row.variants.map((item) => item.id))).size}</strong></div>
+            <div><span>通过验证</span><strong>{totalPassed}</strong></div>
+            <div><span>测试配置</span><strong>{new Set(rows.flatMap((row) => row.variants.map((item) => item.id))).size}</strong></div>
           </div>
           <div className="experiment-layout">
             <aside className="experiment-rail" aria-label="实验列表">

@@ -1,14 +1,15 @@
+import { CircleHelp, LoaderCircle, TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import type { RunStatus } from "./types";
 
 const statusLabels: Record<string, string> = {
-  QUEUED: "排队中",
+  QUEUED: "等待中",
   PREPARING: "准备中",
   RUNNING: "运行中",
   VALIDATING: "验证中",
   PASSED: "已通过",
   FAILED: "未通过",
-  ERROR: "异常",
+  ERROR: "出错了",
   CANCELLED: "已取消",
 };
 
@@ -19,6 +20,7 @@ export function statusLabel(status: string) {
 export function StatusBadge({ status }: { status: RunStatus | string }) {
   return (
     <span className={`status status-${status.toLowerCase()}`}>
+      <i aria-hidden="true" />
       {statusLabel(status)}
     </span>
   );
@@ -37,17 +39,17 @@ export function Metric({ label, value, note }: { label: string; value: ReactNode
 export function EmptyState({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="empty-state">
-      <div className="empty-mark">?</div>
+      <div className="empty-mark"><CircleHelp size={26} strokeWidth={1.7} /></div>
       <h2>{title}</h2>
       <p>{children}</p>
     </div>
   );
 }
 
-export function Loading({ label = "正在读取证据" }: { label?: string }) {
+export function Loading({ label = "正在读取数据" }: { label?: string }) {
   return (
     <div className="loading">
-      <span />
+      <LoaderCircle size={18} strokeWidth={2} />
       {label}
     </div>
   );
@@ -56,8 +58,11 @@ export function Loading({ label = "正在读取证据" }: { label?: string }) {
 export function ErrorPanel({ error }: { error: Error }) {
   return (
     <div className="error-panel">
-      <strong>无法载入当前页面</strong>
-      <span>{error.message}</span>
+      <TriangleAlert size={19} strokeWidth={1.8} aria-hidden="true" />
+      <div>
+        <strong>这里暂时没加载出来</strong>
+        <span>{error.message}</span>
+      </div>
     </div>
   );
 }
