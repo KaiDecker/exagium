@@ -1,1 +1,1 @@
-"""Small offline repositories used by Exagium demos."""
+"""供 Exagium 演示使用的小型离线仓库。"""

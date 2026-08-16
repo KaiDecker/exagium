@@ -1,1 +1,1 @@
-"""Independent validation of completed agent work."""
+"""对 Agent 完成的工作执行独立验证。"""

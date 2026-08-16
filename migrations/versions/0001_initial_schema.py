@@ -1,4 +1,4 @@
-"""Create the V0 Exagium schema."""
+"""创建 Exagium V0 初始数据库结构。"""
 
 import sqlalchemy as sa
 from alembic import op

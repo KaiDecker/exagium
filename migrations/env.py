@@ -19,7 +19,7 @@ target_metadata = Base.metadata
 
 
 def ensure_sqlite_parent_exists() -> None:
-    """Allow Alembic to run before Exagium has created its state directory."""
+    """允许 Alembic 在 Exagium 尚未创建状态目录时先运行。"""
     url = make_url(config.get_main_option("sqlalchemy.url"))
     if url.get_backend_name() != "sqlite" or not url.database or url.database == ":memory:":
         return

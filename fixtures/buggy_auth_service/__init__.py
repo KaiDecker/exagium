@@ -1,1 +1,1 @@
-"""A deliberately buggy authentication service used by the first Exagium demo."""
+"""第一个 Exagium 演示使用的故障认证服务。"""

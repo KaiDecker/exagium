@@ -1,1 +1,1 @@
-"""SQLite persistence for runs, traces, validations, and artifacts."""
+"""运行、轨迹、验证和产物的 SQLite 持久化。"""

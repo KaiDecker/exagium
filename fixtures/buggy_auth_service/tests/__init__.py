@@ -1,1 +1,1 @@
-"""Ground-truth tests for the buggy authentication fixture."""
+"""故障认证 fixture 的真实结果验证测试。"""

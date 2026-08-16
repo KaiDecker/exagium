@@ -1,1 +1,1 @@
-"""Read-only HTTP API and local web application."""
+"""只读 HTTP API 与本地 Web 应用。"""

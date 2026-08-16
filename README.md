@@ -9,10 +9,11 @@ configured on your machine. The agent does the work; Exagium prepares an isolate
 records what happened, runs independent validation, and persists evidence for later analysis.
 
 This repository currently implements the Phase 0/1 single-run milestone, Phase 2 sequential
-experiments, Phase 3 deterministic run comparison, and the Phase 4 read API and Web UI:
+experiments, Phase 3 deterministic run comparison, the Phase 4 read API and Web UI, and the
+Phase 5 Claude Code CLI adapter:
 
 ```text
-Task → Codex → Trace → Validation → PASS / FAIL / ERROR
+Task → Codex / Claude Code → Trace → Validation → PASS / FAIL / ERROR
                          ↓
                 Repeat → Aggregate → Compare
 ```
@@ -21,10 +22,12 @@ Task → Codex → Trace → Validation → PASS / FAIL / ERROR
 
 ## What works now
 
-- `exagium doctor` checks Git, Codex, SQLite, and the workspace directory.
+- `exagium doctor` checks Git, Codex, Claude Code, SQLite, and the workspace directory.
 - YAML task manifests resolve a repository and immutable base commit.
 - Every run gets its own detached Git worktree.
 - `CodexCliAdapter` launches the user's existing `codex exec --json` configuration.
+- `ClaudeCliAdapter` launches the user's existing `claude --print --output-format stream-json`
+  configuration without requesting an API key.
 - Raw JSONL and a small stable normalized event model are both persisted.
 - Unknown or malformed future Codex events are retained without crashing the run.
 - Validation commands run after the agent exits and determine PASS/FAIL independently.
@@ -32,7 +35,8 @@ Task → Codex → Trace → Validation → PASS / FAIL / ERROR
 - Experiment manifests repeat one or more Codex variants sequentially and persist run membership.
 - Experiment summaries report status counts, success rate, median duration, and nullable usage.
 - Run comparison normalizes traces into semantic steps and reports the first divergence.
-- A read-only FastAPI surface powers Experiments, Run Detail, and Compare Runs pages.
+- A read-only FastAPI surface powers Chinese pixel-style Experiments, Run Detail, and Compare
+  Runs pages.
 - Tests use a fake JSONL agent and require no Codex credentials or network access.
 
 Exagium does not call an LLM API, manage provider keys, or implement its own agent loop.
@@ -68,7 +72,7 @@ showed behavioral variance: two successful runs diverged at their first semantic
 
 - Python 3.12+
 - Git
-- Codex CLI, already authenticated and configured, for real runs
+- Codex CLI and/or Claude Code CLI, already authenticated and configured, for real runs
 
 ## Install for development
 
@@ -144,6 +148,20 @@ exagium run task.yaml --json
 
 Exagium deliberately inherits the user's normal Codex environment. If Codex is routed through a
 local provider or router, that remains Codex's configuration; Exagium does not request the API key.
+
+## Run Claude Code
+
+Check the locally installed Claude Code CLI, then use the same task manifest:
+
+```powershell
+exagium doctor claude
+exagium run tasks\demo-auth-race.yaml --agent claude
+```
+
+The adapter uses Claude Code's non-interactive `stream-json` output and defaults to
+`--permission-mode acceptEdits`. It does not enable `--dangerously-skip-permissions`; users who
+need a different permission policy should make that choice explicitly rather than inheriting an
+unsafe harness default.
 
 ## Run the offline authentication demo
 
@@ -256,9 +274,10 @@ and removes the worktree.
 
 ## Roadmap boundaries
 
-The next adapter milestone is Claude Code; advanced harness capabilities remain demand-driven.
-V0 intentionally excludes a custom agent loop, multi-agent orchestration, RAG, memory, Redis,
-Kafka, distributed workers, and AI root-cause analysis.
+The next milestone is the uncertainty-aware Statistical Experiment Engine described in the
+extension roadmap. Advanced harness capabilities remain demand-driven. V0 intentionally excludes
+a custom agent loop, multi-agent orchestration, RAG, memory, Redis, Kafka, distributed workers,
+and AI root-cause analysis.
 
 ## License
 

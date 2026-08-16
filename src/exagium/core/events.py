@@ -23,7 +23,7 @@ class EventType(StrEnum):
     USAGE_REPORTED = "USAGE_REPORTED"
     VALIDATION_STARTED = "VALIDATION_STARTED"
     VALIDATION_COMPLETED = "VALIDATION_COMPLETED"
-    # 不认识的事件
+    # 未知事件仍需保留原始数据，便于未来升级 normalizer 后重新分析。
     SYSTEM_NOTE = "SYSTEM_NOTE"
 
 

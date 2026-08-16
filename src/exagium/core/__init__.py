@@ -1,1 +1,1 @@
-"""Core models and state shared by adapters and services."""
+"""适配器与服务共享的核心模型和状态。"""

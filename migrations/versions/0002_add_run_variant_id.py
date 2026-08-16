@@ -1,4 +1,4 @@
-"""Associate experiment runs with their variant."""
+"""将实验运行关联到对应变体。"""
 
 import sqlalchemy as sa
 from alembic import op

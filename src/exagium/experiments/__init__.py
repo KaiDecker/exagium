@@ -1,1 +1,1 @@
-"""Sequential experiment execution and aggregate metrics."""
+"""顺序执行实验并聚合指标。"""

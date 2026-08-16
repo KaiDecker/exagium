@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 
 class AuthenticationError(Exception):
-    """A token cannot be mapped to an active user."""
+    """Token 无法映射到有效用户。"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,7 +21,7 @@ class InMemoryIdentityStore:
         self._users = users
 
     async def user_id_for_token(self, token: str) -> str | None:
-        # The scheduling points model independent database queries in a web service.
+        # 这些调度点模拟 Web 服务中相互独立的数据库查询。
         await asyncio.sleep(0)
         return self._tokens.get(token)
 
@@ -40,8 +40,8 @@ class AuthenticationService:
         if self._candidate_user_id is None:
             raise AuthenticationError("invalid token")
 
-        # Request-local state is accidentally kept on the shared service instance. Another
-        # request can overwrite it while this coroutine is suspended.
+        # 本应属于单次请求的状态被错误地保存在共享服务实例中；当前协程挂起时，
+        # 另一个请求可以覆盖该状态，从而稳定复现竞态问题。
         await asyncio.sleep(0)
         user = await self._store.load_user(self._candidate_user_id)
         if user is None or not user.active:

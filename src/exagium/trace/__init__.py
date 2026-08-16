@@ -1,1 +1,1 @@
-"""Agent event normalization and recording."""
+"""Agent 事件标准化与记录。"""

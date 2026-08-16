@@ -1,18 +1,18 @@
 class ExagiumError(Exception):
-    """Base error for expected harness failures."""
+    """Harness 可预期故障的基础异常。"""
 
 
 class ManifestError(ExagiumError):
-    """A task manifest is invalid or cannot be resolved."""
+    """任务清单无效或无法解析。"""
 
 
 class WorkspaceError(ExagiumError):
-    """An isolated run workspace could not be prepared."""
+    """无法准备隔离运行工作区。"""
 
 
 class AgentProcessError(ExagiumError):
-    """The external agent process could not be run safely."""
+    """外部 Agent 进程无法安全运行。"""
 
 
 class InvalidStatusTransition(ExagiumError):
-    """A run attempted an invalid state transition."""
+    """运行尝试了无效的状态迁移。"""
