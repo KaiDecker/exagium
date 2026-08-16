@@ -8,11 +8,35 @@ import {
   Loading,
   Metric,
   shortId,
+  statusLabel,
   StatusBadge,
 } from "../components";
 import type { AgentEvent } from "../types";
 
 type Tab = "trace" | "validation" | "diff" | "raw";
+
+const tabLabels: Record<Tab, string> = {
+  trace: "执行轨迹",
+  validation: "独立验证",
+  diff: "代码差异",
+  raw: "原始事件",
+};
+
+const eventLabels: Record<string, string> = {
+  RUN_STARTED: "运行开始",
+  RUN_FINISHED: "运行完成",
+  RUN_FAILED: "运行失败",
+  AGENT_MESSAGE: "Agent 消息",
+  TOOL_STARTED: "工具开始",
+  TOOL_COMPLETED: "工具完成",
+  TOOL_FAILED: "工具失败",
+  COMMAND_STARTED: "命令开始",
+  COMMAND_COMPLETED: "命令完成",
+  COMMAND_FAILED: "命令失败",
+  FILE_CHANGED: "文件变更",
+  VALIDATION_STARTED: "验证开始",
+  VALIDATION_COMPLETED: "验证完成",
+};
 
 function eventTitle(event: AgentEvent) {
   const payload = event.payload;
@@ -48,7 +72,7 @@ export function RunDetailPage({ runId }: { runId: string }) {
     queryFn: () => api.artifacts(runId),
   });
 
-  if (run.isLoading) return <Loading label="Loading run evidence" />;
+  if (run.isLoading) return <Loading label="正在载入运行证据" />;
   if (run.error) return <ErrorPanel error={run.error} />;
   if (!run.data) return null;
   const item = run.data;
@@ -60,48 +84,47 @@ export function RunDetailPage({ runId }: { runId: string }) {
 
   return (
     <div className="page run-page">
-      <div className="breadcrumbs"><a href="/experiments">Experiments</a><span>/</span><span>Run {shortId(item.id)}</span></div>
+      <div className="breadcrumbs"><a href="/experiments">实验</a><span>/</span><span>运行 {shortId(item.id)}</span></div>
       <header className="run-hero panel">
         <div>
-          <span className="eyebrow">Execution record</span>
-          <div className="run-title"><h1>Run {shortId(item.id)}</h1><StatusBadge status={item.status} /></div>
-          <p>{item.agent_name}{item.agent_version ? ` ${item.agent_version}` : ""} · {item.model_name ?? "model unreported"} · task <code>{item.task_id}</code></p>
+          <span className="eyebrow">执行记录</span>
+          <div className="run-title"><h1>运行 {shortId(item.id)}</h1><StatusBadge status={item.status} /></div>
+          <p>{item.agent_name}{item.agent_version ? ` ${item.agent_version}` : ""} · {item.model_name ?? "模型未报告"} · 任务 <code>{item.task_id}</code></p>
         </div>
-        {item.experiment_id && <a className="quiet-link" href="/experiments">← Experiment {item.experiment_id}</a>}
+        {item.experiment_id && <a className="quiet-link" href="/experiments">← 返回实验 {item.experiment_id}</a>}
       </header>
 
       <div className="metric-grid run-metrics">
-        <Metric label="Duration" value={formatDuration(item.metrics.duration_ms)} />
-        <Metric label="Commands" value={item.metrics.command_count ?? 0} />
-        <Metric label="Files changed" value={item.metrics.file_change_count ?? 0} />
-        <Metric label="Tokens" value={formatNumber(item.metrics.tokens_total)} note={item.metrics.tokens_total == null ? "not reported" : undefined} />
-        <Metric label="Validation" value={item.validation_status ?? "—"} />
+        <Metric label="运行耗时" value={formatDuration(item.metrics.duration_ms)} />
+        <Metric label="命令数" value={item.metrics.command_count ?? 0} />
+        <Metric label="文件变更" value={item.metrics.file_change_count ?? 0} />
+        <Metric label="Token" value={formatNumber(item.metrics.tokens_total)} note={item.metrics.tokens_total == null ? "Agent 未报告" : undefined} />
+        <Metric label="验证状态" value={item.validation_status ? statusLabel(item.validation_status) : "—"} />
       </div>
 
-      {item.error && <div className="error-panel"><strong>Run error</strong><span>{item.error}</span></div>}
+      {item.error && <div className="error-panel"><strong>运行异常</strong><span>{item.error}</span></div>}
 
       <section className="evidence panel">
         <div className="tabs" role="tablist">
           {(["trace", "validation", "diff", "raw"] as Tab[]).map((name) => (
-            <button className={tab === name ? "active" : ""} key={name} onClick={() => setTab(name)}>{name}</button>
+            <button className={tab === name ? "active" : ""} key={name} onClick={() => setTab(name)}>{tabLabels[name]}</button>
           ))}
         </div>
 
         {tab === "trace" && (
           <div className="timeline">
-            {events.isLoading && <Loading label="Loading trace" />}
+            {events.isLoading && <Loading label="正在载入执行轨迹" />}
             {events.error && <ErrorPanel error={events.error} />}
             {hiddenEventCount > 0 && (
               <div className="trace-filter-note">
-                {hiddenEventCount} system/usage events hidden from the focused trace. Open Raw to
-                inspect every recorded event.
+                已隐藏 {hiddenEventCount} 条系统或用量事件。打开“原始事件”可查看完整记录。
               </div>
             )}
             {traceEvents?.map((event) => (
               <article className={`timeline-item ${eventClass(event.type)}`} key={event.id}>
                 <div className="timeline-axis"><span>{event.seq}</span><i /></div>
                 <div>
-                  <header><strong>{event.type.replaceAll("_", " ")}</strong><time>{new Date(event.timestamp).toLocaleTimeString()}</time></header>
+                  <header><strong>{eventLabels[event.type] ?? event.type.replaceAll("_", " ")}</strong><time>{new Date(event.timestamp).toLocaleTimeString("zh-CN")}</time></header>
                   <p>{eventTitle(event)}</p>
                   <small>{event.source}</small>
                 </div>
@@ -112,7 +135,7 @@ export function RunDetailPage({ runId }: { runId: string }) {
 
         {tab === "validation" && (
           <div className="validation-list">
-            {validations.isLoading && <Loading label="Loading validation" />}
+            {validations.isLoading && <Loading label="正在载入验证结果" />}
             {validations.data?.map((validation) => (
               <article key={validation.id}>
                 <header><div><StatusBadge status={validation.status} /><strong>{validation.name}</strong></div><span>{formatDuration(validation.duration_ms)}</span></header>
@@ -124,7 +147,7 @@ export function RunDetailPage({ runId }: { runId: string }) {
         )}
 
         {tab === "diff" && (
-          diff?.content ? <pre className="diff-view">{diff.content}</pre> : <p className="muted padded">No diff artifact was captured.</p>
+          diff?.content ? <pre className="diff-view">{diff.content}</pre> : <p className="muted padded">没有捕获到代码差异。</p>
         )}
 
         {tab === "raw" && <pre className="raw-view">{JSON.stringify(events.data ?? [], null, 2)}</pre>}

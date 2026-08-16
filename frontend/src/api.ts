@@ -12,7 +12,7 @@ async function request<T>(path: string): Promise<T> {
   const response = await fetch(path, { headers: { Accept: "application/json" } });
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { detail?: string } | null;
-    throw new Error(body?.detail ?? `Request failed (${response.status})`);
+    throw new Error(body?.detail ?? `请求失败（${response.status}）`);
   }
   return response.json() as Promise<T>;
 }

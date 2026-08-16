@@ -12,6 +12,7 @@ import {
   StatusBadge,
 } from "../components";
 import type { Experiment, Run } from "../types";
+import { PixelTerminal } from "../Shell";
 
 function RunTable({ runs }: { runs: Run[] }) {
   return (
@@ -19,12 +20,12 @@ function RunTable({ runs }: { runs: Run[] }) {
       <table className="run-table">
         <thead>
           <tr>
-            <th>Run</th>
-            <th>Variant</th>
-            <th>Status</th>
-            <th>Duration</th>
-            <th>Commands</th>
-            <th>Tokens</th>
+            <th>运行</th>
+            <th>实验变体</th>
+            <th>状态</th>
+            <th>耗时</th>
+            <th>命令数</th>
+            <th>Token</th>
           </tr>
         </thead>
         <tbody>
@@ -33,7 +34,7 @@ function RunTable({ runs }: { runs: Run[] }) {
               <td>
                 <a href={`/runs/${run.id}`}>{shortId(run.id)}</a>
               </td>
-              <td>{run.variant_id ?? "standalone"}</td>
+              <td>{run.variant_id ?? "独立运行"}</td>
               <td>
                 <StatusBadge status={run.status} />
               </td>
@@ -64,30 +65,30 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
     <section className="experiment-detail panel">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">Selected experiment</span>
+          <span className="eyebrow">当前实验</span>
           <h2>{experiment.name}</h2>
           <p>
-            Task <code>{experiment.task_id}</code> · created{" "}
-            {new Date(experiment.created_at).toLocaleDateString()}
+            任务 <code>{experiment.task_id}</code> · 创建于{" "}
+            {new Date(experiment.created_at).toLocaleDateString("zh-CN")}
           </p>
         </div>
         <span className="id-stamp">{experiment.id}</span>
       </div>
 
       <div className="metric-grid four">
-        <Metric label="Runs" value={experiment.metrics.runs ?? 0} />
-        <Metric label="Success" value={`${experiment.metrics.success_rate ?? 0}%`} />
+        <Metric label="运行次数" value={experiment.metrics.runs ?? 0} />
+        <Metric label="成功率" value={`${experiment.metrics.success_rate ?? 0}%`} />
         <Metric
-          label="Median duration"
+          label="耗时中位数"
           value={formatDuration(experiment.metrics.median_duration_ms)}
         />
-        <Metric label="Median tokens" value={formatNumber(experiment.metrics.median_tokens)} />
+        <Metric label="Token 中位数" value={formatNumber(experiment.metrics.median_tokens)} />
       </div>
 
       <div className="section-heading compact">
         <div>
-          <span className="eyebrow">Variant performance</span>
-          <h3>Reliability by configuration</h3>
+          <span className="eyebrow">变体表现</span>
+          <h3>不同配置的可靠性</h3>
         </div>
       </div>
       <div className="variant-list">
@@ -96,27 +97,27 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
             <div className="variant-row" key={variant.id}>
               <div>
                 <strong>{labelById.get(variant.id) ?? variant.id}</strong>
-                <small>{variant.runs ?? 0} sequential runs</small>
+                <small>{variant.runs ?? 0} 次顺序运行</small>
               </div>
-              <div className="success-track" aria-label={`${variant.success_rate}% success`}>
+              <div className="success-track" aria-label={`成功率 ${variant.success_rate}%`}>
                 <i style={{ width: `${variant.success_rate ?? 0}%` }} />
               </div>
               <b>{variant.success_rate ?? 0}%</b>
             </div>
           ))
         ) : (
-          <p className="muted">No completed variants yet.</p>
+          <p className="muted">暂无已完成的实验变体。</p>
         )}
       </div>
 
       <div className="section-heading compact run-heading">
         <div>
-          <span className="eyebrow">Evidence ledger</span>
-          <h3>Runs</h3>
+          <span className="eyebrow">证据记录</span>
+          <h3>运行明细</h3>
         </div>
-        <span>{detail.data?.runs.length ?? 0} records</span>
+        <span>{detail.data?.runs.length ?? 0} 条记录</span>
       </div>
-      {detail.isLoading && <Loading label="Loading runs" />}
+      {detail.isLoading && <Loading label="正在载入运行记录" />}
       {detail.error && <ErrorPanel error={detail.error} />}
       {detail.data && <RunTable runs={detail.data.runs} />}
     </section>
@@ -143,31 +144,32 @@ export function ExperimentsPage() {
     <div className="page">
       <header className="page-header">
         <div>
-          <span className="eyebrow">Experiment registry</span>
-          <h1>Measure reliability,<br />not confidence.</h1>
-          <p>Repeatable tasks, independent validation, comparable evidence.</p>
+          <span className="eyebrow">实验档案库</span>
+          <h1>不要相信感觉，<br />让证据说话。</h1>
+          <p>重复执行任务，独立验证结果，对比每一次 Agent 行为。</p>
         </div>
         <div className="header-index">
           <span>{String(rows.length).padStart(2, "0")}</span>
-          <small>EXPERIMENTS<br />ON RECORD</small>
+          <small>已记录<br />实验</small>
         </div>
+        <PixelTerminal />
       </header>
 
       {!rows.length ? (
         <>
-          <EmptyState title="No experiments recorded">
-            Run <code>exagium experiment run experiments\demo-auth-stability.yaml</code> to create
-            the first repeated evidence set.
+          <EmptyState title="还没有实验记录">
+            运行 <code>exagium experiment run experiments\demo-auth-stability.yaml</code>
+            创建第一组重复实验数据。
           </EmptyState>
           {recentRuns.error && <ErrorPanel error={recentRuns.error} />}
           {recentRuns.data && recentRuns.data.length > 0 && (
             <section className="standalone-runs panel">
               <div className="section-heading compact">
                 <div>
-                  <span className="eyebrow">Evidence already available</span>
-                  <h3>Recent standalone runs</h3>
+                  <span className="eyebrow">已有证据</span>
+                  <h3>最近的独立运行</h3>
                 </div>
-                <span>{recentRuns.data.length} records</span>
+                <span>{recentRuns.data.length} 条记录</span>
               </div>
               <RunTable runs={recentRuns.data} />
             </section>
@@ -176,12 +178,12 @@ export function ExperimentsPage() {
       ) : (
         <>
           <div className="overview-strip">
-            <div><span>Total runs</span><strong>{totalRuns}</strong></div>
-            <div><span>Validated passes</span><strong>{totalPassed}</strong></div>
-            <div><span>Agent profiles</span><strong>{new Set(rows.flatMap((row) => row.variants.map((item) => item.id))).size}</strong></div>
+            <div><span>总运行数</span><strong>{totalRuns}</strong></div>
+            <div><span>验证通过</span><strong>{totalPassed}</strong></div>
+            <div><span>Agent 配置</span><strong>{new Set(rows.flatMap((row) => row.variants.map((item) => item.id))).size}</strong></div>
           </div>
           <div className="experiment-layout">
-            <aside className="experiment-rail" aria-label="Experiments">
+            <aside className="experiment-rail" aria-label="实验列表">
               {rows.map((experiment, index) => (
                 <button
                   className={experiment.id === current?.id ? "selected" : ""}
